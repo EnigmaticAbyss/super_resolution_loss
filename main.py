@@ -13,16 +13,16 @@ def run_experiments():
         print("No configuration files found matching the pattern 'config/config_experiment*.yaml'")
     else:
         
+       
         
-        
-        # Run each experiment
+        # # Run each experiment
         for config_file in config_files:
             print(f"Running experiment with config: {config_file}")
             try:
            
              
                 result_train = subprocess.run(
-                    ["python", "scripts/train.py", "--config", config_file],
+                    ["python", "scripts/train.py", "--trainer", config_file],
                     capture_output=True,
                     text=True,
                     check=True
@@ -47,7 +47,7 @@ def run_experiments():
                     check=True
                 )
              
-                print(f"Train experiment with {config_file} completed successfully.\nOutput:\n{result_eval.stdout}")
+                print(f"Test experiment with {config_file} completed successfully.\nOutput:\n{result_eval.stdout}")
                 
             except subprocess.CalledProcessError as e:
                 print(f"Test with {config_file} failed.\nError:\n{e.stderr}")    
@@ -58,7 +58,7 @@ def run_experiments():
 
 # Main execution block
 if __name__ == "__main__":
-    # run_experiments()
+    run_experiments()
  
     # Display a batch comparison (per folder)
     display_images_from_folders("test_results")

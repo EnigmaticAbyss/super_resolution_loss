@@ -20,7 +20,7 @@ import torchvision.utils as vutils
 
 
 # config_files = glob.glob("config/config_experiment*.yml")
-print("small black")
+
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Run super-resolution evaluation with dynamic configuration")
 parser.add_argument("--eval", type=str, required=True, help="Path to the config file")
@@ -51,10 +51,17 @@ else:
 
 
 
+model_path = f"saved_models/{model_name}_{loss_name}.pth"  # Specify your saved model path
 
-model.load_state_dict(torch.load(f"saved_models/{model_name}_{loss_name}.pth"))  # Specify your saved model path
-
-
+try:
+    # Check if the model file exists
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path))
+        print(f"Model loaded successfully from {model_path}")
+    else:
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+except Exception as e:
+    print(f"Error loading model: {e}")
 
 
 model.eval()
@@ -62,7 +69,10 @@ model.eval()
 # Prepare validation dataset and loader
 transform = transforms.Compose([transforms.ToTensor()])
 # test_dataset = SRDataset(hr_dir=config["valid_hr_path"], lr_dir=config["valid_lr_path"], transform=transform)
-test_dataset = SRDataset(hr_dir="data/DIV2K/test/HR", lr_dir="data/DIV2K/test/LR_bicubic_X4", transform=transform)
+# test_dataset = SRDataset(hr_dir="data/DIV2K/test/HR", lr_dir="data/DIV2K/test/LR_bicubic_X4", transform=transform)
+
+test_dataset = SRDataset(hr_dir="data/DIV2K/test/HR", lr_dir="data/DIV2K/test/LR_bicubic_X4", transform=transform,hr_size=(256, 256), lr_size=(64, 64))
+
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # # Example coordinates for areas to highlight in relative coordinates (adjust as needed)
@@ -76,6 +86,8 @@ test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 model_name = config['model']
 loss_name = config['loss_function']
 writer = SummaryWriter(log_dir=f"logs/tensorboard/test_results_{model_name}_{loss_name}")
+
+
 
 # Iterate through the validation set and display comparisons every part in loop is a batch which in test is one element
 
@@ -93,7 +105,7 @@ with torch.no_grad():
         single_psnr = calculate_psnr(sr_img, hr_img)
         single_ssim = calculate_ssim(sr_img, hr_img)
    
-        print(type(single_psnr))
+        # print(type(single_psnr))
         # Log the PSNR and SSIM metrics
         writer.add_scalar("Metrics/PSNR", single_psnr[0], iteration)
         writer.add_scalar("Metrics/SSIM", single_ssim[0], iteration)

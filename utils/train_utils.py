@@ -3,7 +3,7 @@ from tqdm import tqdm
 import torch
 # from utils.metrics import calculate_psnr, calculate_ssim
 
-def train_epoch(model, dataloader, optimizer, loss_fn, writer, epoch, device):
+def train_epoch(model, dataloader, optimizer, loss_fn, epoch, device):
     model.train()
     total_loss = 0
     
@@ -32,7 +32,6 @@ def validate(model, dataloader, loss_fn, device):
     model.eval()
     total_loss = 0
     # psnr_values = []
-    # ssim_values = []
 
     # Wrap dataloader in tqdm for a progress bar
     with torch.no_grad():
@@ -53,8 +52,9 @@ def validate(model, dataloader, loss_fn, device):
             # ssim_values.extend(batch_ssim)
 
     # Calculate average metrics over all images in the validation set
-        avg_loss = total_loss / len(dataloader)
-        return avg_loss
+    avg_loss = total_loss / len(dataloader)
+     
+    
     #calculate psnr and ssim for a whole epoch
     # avg_psnr = sum(psnr_values) / len(psnr_values)
     # avg_ssim = sum(ssim_values) / len(ssim_values)
