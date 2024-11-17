@@ -16,6 +16,7 @@ from utils.dataset import SRDataset
 from losses.lpips_loss import LPIPSLoss
 from losses.perceptual_loss import PerceptualLoss
 from utils.train_utils import Trainer
+import torch.nn as nn
 
 class SuperResolutionTrainer:
     def __init__(self, config_path):
@@ -29,8 +30,9 @@ class SuperResolutionTrainer:
         self._initialize_model()
         self._initialize_loss()
         self._initialize_data_loaders()
-        self._initialize_trainer()
         self._initialize_tensorboard()
+        self._initialize_trainer()
+     
 
     def _setup_paths(self):
         # Ensure required paths exist
@@ -61,7 +63,7 @@ class SuperResolutionTrainer:
         elif loss_type == "gradient_loss":
             self.loss_fn = GradientLoss(loss_type='l2', device=self.device)
         elif loss_type == "MSE_loss":
-            raise NotImplementedError("MSE loss not implemented yet!")
+            self.loss_fn = nn.MSELoss(self.device)
         elif loss_type == "Frequency_loss":
             raise NotImplementedError("Frequency loss not implemented yet!")
         else:

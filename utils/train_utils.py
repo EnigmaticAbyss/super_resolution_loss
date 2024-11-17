@@ -43,7 +43,7 @@ class Trainer:
         self.model.train()
         total_loss = 0
 
-        for i, (lr_imgs, hr_imgs) in enumerate(tqdm(self.train_dataloader, desc=f"Training Epoch {epoch + 1}")):
+        for i, (lr_imgs, hr_imgs) in enumerate(tqdm(self.train_dataloader, desc=f"Training Epoch {epoch}")):
             lr_imgs, hr_imgs = lr_imgs.to(self.device), hr_imgs.to(self.device)
             sr_imgs = self.model(lr_imgs)
 

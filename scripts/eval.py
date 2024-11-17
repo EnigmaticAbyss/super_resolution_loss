@@ -56,7 +56,7 @@ class SuperResolutionEvaluator:
         # Load pre-trained model weights
         model_name = self.config["model"]
         loss_name = self.config["loss_function"]
-        model_path = os.path.join(self.config.get("model_save_dir", "saved_models"), f"{model_name}_{loss_name}.pth")
+        model_path = os.path.join(self.config.get("model_save_dir", "saved_models"), f"experiment_{model_name}_{loss_name}.pth")
         
         if os.path.exists(model_path):
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
