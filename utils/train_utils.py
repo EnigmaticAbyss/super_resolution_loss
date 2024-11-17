@@ -137,8 +137,9 @@ class Trainer:
             if val_loss < self.best_value_loss:
                 self.epochs_no_improve = 0
                 self.best_value_loss = val_loss
-                torch.save(self.model.state_dict(), best_model_path)
-                print(f"Best model saved to {best_model_path} with validation loss {self.best_value_loss:.4f}")
+                # Optionally: Save the model checkpoint or log epoch metrics
+                self.save_checkpoint(best_model_path,temp_model_path) # If checkpoint saving is required
+
             else:
                 self.epochs_no_improve += 1
                 print(f"No improvement for {self.epochs_no_improve} epochs.")
@@ -150,8 +151,6 @@ class Trainer:
                 break
 
 
-            # Optionally: Save the model checkpoint or log epoch metrics
-            self.save_checkpoint(best_model_path,temp_model_path) # If checkpoint saving is required
 
         return train_losses, val_losses
 
