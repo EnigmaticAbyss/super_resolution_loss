@@ -3,140 +3,119 @@
 import sys
 sys.path.append("C:/Users/Asus/Desktop/super_resolution_loss")
 
-import torch
-from models.esrgan import ESRGANGenerator
-from utils.dataset import SRDataset
-from utils.train_utils import validate
 
+
+
+import os
+import sys
+import torch
+import yaml
 from torch.utils.data import DataLoader
 from torchvision import transforms
-import yaml
-from torchsr.models import edsr
-import argparse
-import os
+from torchvision.utils import save_image
 from torch.utils.tensorboard import SummaryWriter
+
+from models.esrgan import ESRGANGenerator
+from utils.dataset import SRDataset
 from utils.metrics import calculate_psnr, calculate_ssim
-import torchvision.utils as vutils
+from torchsr.models import edsr
 
 
-# config_files = glob.glob("config/config_experiment*.yml")
+class SuperResolutionEvaluator:
+    def __init__(self, config_path):
+        # Load configuration
+        with open(config_path, 'r') as file:
+            self.config = yaml.load(file, Loader=yaml.FullLoader)
+        
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = None
+        self.test_loader = None
+        self.writer = None
+        self.iteration = 0
+        
+        self._initialize_model()
+        self._load_model()
+        self._prepare_test_loader()
+        self._initialize_tensorboard()
 
-# Parse command-line arguments
-parser = argparse.ArgumentParser(description="Run super-resolution evaluation with dynamic configuration")
-parser.add_argument("--eval", type=str, required=True, help="Path to the config file")
-args = parser.parse_args()
-
-# Load configuration from the specified file
-with open(args.eval) as file:
-    config = yaml.load(file, Loader=yaml.FullLoader)
-
-# TensorBoard writer setup
-model_name = config['model']
-loss_name = config['loss_function']
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-# Load the trained model
-if config["model"] == "esrgan":
-    model = ESRGANGenerator().to(device)
-elif config["model"] == "edsr":
-    model = edsr(scale=4).to(device)
-elif config["model"] == "NafNet":
-    print("Not added yet!")
-elif config["model"] == "SwinIR":
-    print("Not added yet!")  
-else:
-    raise ValueError("Unsupported model specified in config.")
-
-
-
-model_path = f"saved_models/{model_name}_{loss_name}.pth"  # Specify your saved model path
-
-try:
-    # Check if the model file exists
-    if os.path.exists(model_path):
-        model.load_state_dict(torch.load(model_path))
-        print(f"Model loaded successfully from {model_path}")
-    else:
-        raise FileNotFoundError(f"Model file not found: {model_path}")
-except Exception as e:
-    print(f"Error loading model: {e}")
-
-
-model.eval()
-
-# Prepare validation dataset and loader
-transform = transforms.Compose([transforms.ToTensor()])
-# test_dataset = SRDataset(hr_dir=config["valid_hr_path"], lr_dir=config["valid_lr_path"], transform=transform)
-# test_dataset = SRDataset(hr_dir="data/DIV2K/test/HR", lr_dir="data/DIV2K/test/LR_bicubic_X4", transform=transform)
-
-test_dataset = SRDataset(hr_dir="data/DIV2K/test/HR", lr_dir="data/DIV2K/test/LR_bicubic_X4", transform=transform,hr_size=(256, 256), lr_size=(64, 64))
-
-test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-
-# # Example coordinates for areas to highlight in relative coordinates (adjust as needed)
-# circles = [
-#     (0.5, 0.5, 0.1),  # Center circle with radius 0.1
-#     (0.7, 0.3, 0.08)  # Another point of interest
-# ]
-
-
-# TensorBoard writer setup
-model_name = config['model']
-loss_name = config['loss_function']
-writer = SummaryWriter(log_dir=f"logs/tensorboard/test_results_{model_name}_{loss_name}")
-
-
-
-# Iterate through the validation set and display comparisons every part in loop is a batch which in test is one element
-
-iteration = 0  # Initialize the iteration counter
-
-output_dir = "test_results"  # Base directory to save images
-os.makedirs(output_dir, exist_ok=True)  # Ensure the base directory exists
-
-with torch.no_grad():
-    for lr_img, hr_img in test_loader:
-        lr_img, hr_img = lr_img.to(device), hr_img.to(device)
-        sr_img = model(lr_img)
-
-        # Calculate PSNR and SSIM
-        single_psnr = calculate_psnr(sr_img, hr_img)
-        single_ssim = calculate_ssim(sr_img, hr_img)
-   
-        # print(type(single_psnr))
-        # Log the PSNR and SSIM metrics
-        writer.add_scalar("Metrics/PSNR", single_psnr[0], iteration)
-        writer.add_scalar("Metrics/SSIM", single_ssim[0], iteration)
-
-        # Create a folder for this image
-        folder_name = f"image_{iteration}"
-        folder_path = os.path.join(output_dir, folder_name)
-
-        # Check if the folder already exists
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path, exist_ok=True)
-            print(f"Folder {folder_path} created.")
+    def _initialize_model(self):
+        # Initialize the model
+        model_type = self.config["model"]
+        if model_type == "esrgan":
+            self.model = ESRGANGenerator().to(self.device)
+        elif model_type == "edsr":
+            self.model = edsr(scale=4).to(self.device)
+        elif model_type == "NafNet":
+            raise NotImplementedError("NafNet model not implemented yet!")
+        elif model_type == "SwinIR":
+            raise NotImplementedError("SwinIR model not implemented yet!")
         else:
-            print(f"Folder {folder_path} already exists.")
-            
-        # Define file paths
-        lr_image_path = os.path.join(folder_path, "lr_image.png")
-        hr_image_path = os.path.join(folder_path, "hr_image.png")
-        sr_image_path = os.path.join(folder_path, f"SRImage_{model_name}_{loss_name}.png")
+            raise ValueError(f"Unsupported model type: {model_type}")
 
-        # Save images only if they don't already exist
-        if not os.path.exists(lr_image_path):
-            vutils.save_image(lr_img, lr_image_path)
-        if not os.path.exists(hr_image_path):
-            vutils.save_image(hr_img, hr_image_path)
-        if not os.path.exists(sr_image_path):
-            vutils.save_image(sr_img, sr_image_path)
-            
-        iteration += 1  # Increment the iteration counter
+    def _load_model(self):
+        # Load pre-trained model weights
+        model_name = self.config["model"]
+        loss_name = self.config["loss_function"]
+        model_path = os.path.join(self.config.get("model_save_dir", "saved_models"), f"{model_name}_{loss_name}.pth")
+        
+        if os.path.exists(model_path):
+            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+            print(f"Model loaded successfully from {model_path}")
+        else:
+            raise FileNotFoundError(f"Model file not found: {model_path}")
+        
+        self.model.eval()
 
+    def _prepare_test_loader(self):
+        # Prepare the test dataset and DataLoader
+        transform = transforms.Compose([transforms.ToTensor()])
+        self.test_dataset = SRDataset(
+            hr_dir=self.config["test_hr_path"], 
+            lr_dir=self.config["test_lr_path"], 
+            transform=transform, 
+            hr_size=(256, 256), 
+            lr_size=(64, 64)
+        )
+        self.test_loader = DataLoader(self.test_dataset, batch_size=1, shuffle=False)
 
+    def _initialize_tensorboard(self):
+        # Set up TensorBoard writer
+        log_dir = self.config.get("log_dir", "logs/tensorboard")
+        self.writer = SummaryWriter(log_dir=os.path.join(log_dir,f"experiment_{self.config['model']}_{self.config['loss_function']}"))
 
+    def evaluate(self):
+        output_dir = self.config.get("output_dir", "test_results")
+        os.makedirs(output_dir, exist_ok=True)  # Ensure the base directory exists
 
+        with torch.no_grad():
+            for lr_img, hr_img in self.test_loader:
+                lr_img, hr_img = lr_img.to(self.device), hr_img.to(self.device)
+                sr_img = self.model(lr_img)
+
+                # Calculate PSNR and SSIM
+                single_psnr = calculate_psnr(sr_img, hr_img)
+                single_ssim = calculate_ssim(sr_img, hr_img)
+
+                # Log metrics
+                self.writer.add_scalar("Metrics/PSNR", single_psnr[0], self.iteration)
+                self.writer.add_scalar("Metrics/SSIM", single_ssim[0], self.iteration)
+
+                # Create a folder for each image's results
+                folder_name = f"image_{self.iteration}"
+                folder_path = os.path.join(output_dir, folder_name)
+                os.makedirs(folder_path, exist_ok=True)
+
+                # Define file paths
+                lr_image_path = os.path.join(folder_path, "lr_image.png")
+                hr_image_path = os.path.join(folder_path, "hr_image.png")
+                sr_image_path = os.path.join(folder_path, f"SRImage_{self.config['model']}_{self.config['loss_function']}.png")
+
+                # Save images
+                save_image(lr_img, lr_image_path)
+                save_image(hr_img, hr_image_path)
+                save_image(sr_img, sr_image_path)
+
+                self.iteration += 1
+
+        print(f"Evaluation completed. Results saved in {output_dir}.")
 
