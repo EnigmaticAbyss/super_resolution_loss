@@ -46,7 +46,8 @@ class SuperResolutionTrainer:
         if model_type == "esrgan":
             self.model = ESRGANGenerator().to(self.device)
         elif model_type == "edsr":
-             self.model = edsr(scale=4, pretrained=True)
+             self.model = edsr(scale=4, pretrained=True).to(self.device)
+            #  self.model = edsr(scale=4, pretrained=True)
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
         elif model_type == "SwinIR":
