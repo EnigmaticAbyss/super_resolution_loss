@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from models.esrgan import ESRGANGenerator
+from torchsr.models import edsr
 from losses.gradient_loss import GradientLoss
 from utils.dataset import SRDataset
 from losses.lpips_loss import LPIPSLoss
@@ -45,7 +46,7 @@ class SuperResolutionTrainer:
         if model_type == "esrgan":
             self.model = ESRGANGenerator().to(self.device)
         elif model_type == "edsr":
-            raise NotImplementedError("EDSR model not implemented yet!")
+             self.model = edsr(scale=4, pretrained=True)
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
         elif model_type == "SwinIR":
@@ -71,6 +72,7 @@ class SuperResolutionTrainer:
 
     def _initialize_data_loaders(self):
         # Initialize datasets and data loaders
+        # 4x------>1
         self.train_dataset = SRDataset(
             hr_dir=self.config["train_hr_path"], 
             lr_dir=self.config["train_lr_path"], 
