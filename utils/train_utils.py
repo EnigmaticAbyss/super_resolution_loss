@@ -60,7 +60,7 @@ class Trainer:
             # writer.add_scalar("Loss/train", loss.item(), epoch * len(self.train_dataloader) + i)
 
         avg_loss = total_loss / len(self.train_dataloader)
-        print(f"Epoch {epoch+1}, Average Loss: {avg_loss}")
+        print(f"Epoch {epoch}, Average Loss: {avg_loss}")
         return avg_loss
 
     def validate(self):
