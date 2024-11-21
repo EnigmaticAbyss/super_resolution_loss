@@ -43,10 +43,10 @@ class SuperResolutionTrainer:
     def _initialize_model(self):
         # Initialize the model
         model_type = self.config["model"]
-        if model_type == "esrgan":
+        if model_type == "ESRGANGenerator":
             self.model = ESRGANGenerator().to(self.device)
-        elif model_type == "edsr":
-             self.model = edsr(scale=4, pretrained=True).to(self.device)
+        elif model_type == "EDSR":
+             self.model = edsr(scale=4, pretrained=False).to(self.device)
             #  self.model = edsr(scale=4, pretrained=True)
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
@@ -58,13 +58,13 @@ class SuperResolutionTrainer:
     def _initialize_loss(self):
         # Initialize the loss function
         loss_type = self.config["loss_function"]
-        if loss_type == "perceptual_loss":
+        if loss_type == "PerceptualLoss":
             self.loss_fn = PerceptualLoss(layers=["relu_3"], device=self.device)
-        elif loss_type == "lpips":
+        elif loss_type == "LPIPSLoss":
             self.loss_fn = LPIPSLoss(self.device)
-        elif loss_type == "gradient_loss":
-            self.loss_fn = GradientLoss(loss_type='l2', device=self.device)
-        elif loss_type == "MSE_loss":
+        elif loss_type == "GradientLoss":
+            self.loss_fn = GradientLoss(loss_type='l2').to(self.device)
+        elif loss_type == "MSEloss":
             self.loss_fn = nn.MSELoss(self.device)
         elif loss_type == "Frequency_loss":
             raise NotImplementedError("Frequency loss not implemented yet!")

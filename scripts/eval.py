@@ -41,11 +41,11 @@ class SuperResolutionEvaluator:
     def _initialize_model(self):
         # Initialize the model
         model_type = self.config["model"]
-        if model_type == "esrgan":
+        if model_type == "ESRGANGenerator":
             self.model = ESRGANGenerator().to(self.device)
-        elif model_type == "edsr":
+        elif model_type == "EDSR":
          #  self.model = edsr(scale=4, pretrained=True)
-            self.model = edsr(scale=4).to(self.device)
+            self.model = edsr(scale=4,pretrained=False).to(self.device)
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
         elif model_type == "SwinIR":
