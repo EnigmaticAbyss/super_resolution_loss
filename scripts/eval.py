@@ -17,8 +17,9 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models.esrgan import ESRGANGenerator
 from utils.dataset import SRDataset
-from utils.metrics import calculate_psnr, calculate_ssim
+from utils.metrics import calculate_psnr, calculate_ssim,calculate_fid_score,calculate_lpips_score
 from torchsr.models import edsr
+from models.SwinIR.models.network_swinir import SwinIR
 
 
 class SuperResolutionEvaluator:
@@ -49,7 +50,19 @@ class SuperResolutionEvaluator:
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
         elif model_type == "SwinIR":
-            raise NotImplementedError("SwinIR model not implemented yet!")
+        # Initialize SwinIR model for classical SR (e.g., x4 scaling)
+            self.model = SwinIR(
+                upscale=4, 
+                in_chans=3, 
+                img_size=64, 
+                window_size=8, 
+                img_range=255, 
+                depths=[6, 6, 6, 6], 
+                embed_dim=180, 
+                num_heads=[6, 6, 6, 6], 
+                mlp_ratio=2, 
+                upsampler='pixelshuffle'
+            )
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
@@ -83,7 +96,19 @@ class SuperResolutionEvaluator:
         # Set up TensorBoard writer
         log_dir = self.config.get("log_dir", "logs/tensorboard")
         self.writer = SummaryWriter(log_dir=os.path.join(log_dir,f"experiment_{self.config['model']}_{self.config['loss_function']}"))
+    def normalize_to_match_mean_std(self, sr_image, hr_image):
+            """Normalize SR image to have the same mean and std as the HR image."""
+            sr_mean = sr_image.mean(dim=[0, 2, 3], keepdim=True)  # Mean per channel
+            sr_std = sr_image.std(dim=[0, 2, 3], keepdim=True)    # Std per channel
+            
+            hr_mean = hr_image.mean(dim=[0, 2, 3], keepdim=True)  # Mean per channel
+            hr_std = hr_image.std(dim=[0, 2, 3], keepdim=True)    # Std per channel
 
+            # Normalize SR image to have same mean and std as HR image
+            sr_image_normalized = (sr_image - sr_mean) / (sr_std + 1e-8)  # Normalize SR
+            sr_image_normalized = sr_image_normalized * hr_std + hr_mean  # Match HR stats
+
+            return sr_image_normalized
     def evaluate(self):
         output_dir = self.config.get("output_dir", "test_results")
         os.makedirs(output_dir, exist_ok=True)  # Ensure the base directory exists
@@ -92,14 +117,22 @@ class SuperResolutionEvaluator:
             for lr_img, hr_img in self.test_loader:
                 lr_img, hr_img = lr_img.to(self.device), hr_img.to(self.device)
                 sr_img = self.model(lr_img)
+                sr_img = self.normalize_to_match_mean_std(sr_img,hr_img)
 
                 # Calculate PSNR and SSIM
                 single_psnr = calculate_psnr(sr_img, hr_img)
                 single_ssim = calculate_ssim(sr_img, hr_img)
+                single_fid = calculate_fid_score(sr_img, hr_img)
+                single_lpips = calculate_lpips_score(sr_img, hr_img)
+
+
 
                 # Log metrics
                 self.writer.add_scalar("Metrics/PSNR", single_psnr[0], self.iteration)
                 self.writer.add_scalar("Metrics/SSIM", single_ssim[0], self.iteration)
+                self.writer.add_scalar("Metrics/FID", single_fid[0], self.iteration)
+                self.writer.add_scalar("Metrics/LPIPS", single_lpips[0], self.iteration)
+                
 
                 # Create a folder for each image's results
                 folder_name = f"image_{self.iteration}"

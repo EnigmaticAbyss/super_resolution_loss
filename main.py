@@ -15,6 +15,7 @@ def find_config_files(pattern):
     return config_files
 
 
+
 def run_training(config_files):
     """
     Run training for each configuration file.
@@ -64,4 +65,5 @@ if __name__ == "__main__":
     try:
         display_images_from_folders("test_results")
     except Exception as e:
+        
         print(f"Error displaying results: {e}")

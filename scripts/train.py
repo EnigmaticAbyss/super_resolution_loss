@@ -7,17 +7,30 @@ sys.path.append("C:/Users/Asus/Desktop/super_resolution_loss")
 import os
 import yaml
 import torch as t
+import torch.nn as nn
 from torch.utils.data import DataLoader
+from utils.dataset import SRDataset
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from models.esrgan import ESRGANGenerator
 from torchsr.models import edsr
-from losses.gradient_loss import GradientLoss
-from utils.dataset import SRDataset
+from models.SwinIR.models.network_swinir import SwinIR
+
+from losses.FrequencyLoss import FrequencyLoss
+from losses.FourierFeaturePerceptualLoss import FourierFeaturePerceptualLoss
+from losses.FourierDifferencePerceptualLoss import FourierDifferencePerceptualLoss
+from losses.FourierPerceptualLoss import FourierPerceptualLoss
 from losses.lpips_loss import LPIPSLoss
+from losses.gradient_loss import GradientLoss
 from losses.perceptual_loss import PerceptualLoss
+from losses.perceptual_loss import PerceptualLoss
+from losses.CombinedLoss import CombinedLoss
+from losses.HieraPerceptual import HieraPerceptualLoss  # Import your custom loss class
+
+
+
 from utils.train_utils import Trainer
-import torch.nn as nn
+
 
 class SuperResolutionTrainer:
     def __init__(self, config_path):
@@ -26,13 +39,34 @@ class SuperResolutionTrainer:
             self.config = yaml.load(file, Loader=yaml.FullLoader)
         
         self.device = t.device("cuda" if t.cuda.is_available() else "cpu")
-        self.transform = transforms.Compose([transforms.ToTensor()])
+        self.transform = transforms.Compose(
+            [
+    # transforms.RandomCrop(size=(256, 256)),         # Random cropping
+    # transforms.RandomHorizontalFlip(p=0.5),        # Horizontal flipping
+    # transforms.RandomVerticalFlip(p=0.5),          # Vertical flipping
+    # transforms.RandomRotation(degrees=5),          # Random rotation
+    # transforms.ColorJitter(brightness=0.2,         # Color jitter
+    #                        contrast=0.2,
+    #                        saturation=0.2,
+    #                        hue=0.1),
+    transforms.GaussianBlur(kernel_size=(3, 3),    # Gaussian blur
+                            sigma=(0.1, 2.0)),
+    transforms.ToTensor(),                         # Convert to tensor
+    transforms.Normalize(mean=[0.5, 0.5, 0.5],  std=[0.5, 0.5, 0.5])  # Normalize (optional)
+
+        ]
+    )
+        self.model_name = self.config["model"]
+        self.loss_fn_name = self.config["loss_function"]  
         self._setup_paths()
         self._initialize_model()
+        self.load_pretrained_model()  # Load pretrained model right after model initialization
+
         self._initialize_loss()
         self._initialize_data_loaders()
         self._initialize_tensorboard()
         self._initialize_trainer()
+
      
 
     def _setup_paths(self):
@@ -51,7 +85,20 @@ class SuperResolutionTrainer:
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
         elif model_type == "SwinIR":
-            raise NotImplementedError("SwinIR model not implemented yet!")
+        # Initialize SwinIR model for classical SR (e.g., x4 scaling)
+
+            self.model = SwinIR(
+                upscale=4, 
+                in_chans=3, 
+                img_size=64, 
+                window_size=8, 
+                img_range=255, 
+                depths=[6, 6, 6, 6], 
+                embed_dim=180, 
+                num_heads=[6, 6, 6, 6], 
+                mlp_ratio=2, 
+                upsampler='pixelshuffle'
+            )
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
@@ -67,7 +114,19 @@ class SuperResolutionTrainer:
         elif loss_type == "MSEloss":
             self.loss_fn = nn.MSELoss(self.device)
         elif loss_type == "Frequency_loss":
-            raise NotImplementedError("Frequency loss not implemented yet!")
+            self.loss_fn=  FrequencyLoss().to(self.device)
+        elif loss_type == "FourierPerceptualLoss":
+            self.loss_fn= FourierPerceptualLoss(PerceptualLoss(layers=["relu_3"], device=self.device)).to(self.device)
+        elif loss_type == "FourierDifferencePerceptualLo":
+            self.loss_fn= FourierDifferencePerceptualLoss(PerceptualLoss(layers=["relu_3"], device=self.device)).to(self.device)
+        elif loss_type == "FourierFeaturePerceptualLoss":
+            self.loss_fn=  FourierFeaturePerceptualLoss().to(self.device)
+        elif loss_type == "CombinedLoss":
+            self.loss_fn=  CombinedLoss(FrequencyLoss().to(self.device),PerceptualLoss(layers=["relu_3"], device=self.device)).to(self.device)                
+        elif loss_type == "HieraPerceptualLoss":
+           
+            # Initialize Hiera-based perceptual loss
+            self.loss_fn = HieraPerceptualLoss(layers=['2'], device='cuda')
         else:
             raise ValueError(f"Unsupported loss function: {loss_type}")
 
@@ -78,8 +137,8 @@ class SuperResolutionTrainer:
             hr_dir=self.config["train_hr_path"], 
             lr_dir=self.config["train_lr_path"], 
             transform=self.transform, 
-            hr_size=(256, 256), 
-            lr_size=(64, 64)
+            hr_size=(224, 224), 
+            lr_size=(56, 56)
         )
         self.train_loader = DataLoader(self.train_dataset, batch_size=self.config["batch_size"], shuffle=True)
 
@@ -87,8 +146,8 @@ class SuperResolutionTrainer:
             hr_dir=self.config["valid_hr_path"], 
             lr_dir=self.config["valid_lr_path"], 
             transform=self.transform, 
-            hr_size=(256, 256), 
-            lr_size=(64, 64)
+            hr_size=(224, 224), 
+            lr_size=(56, 56)
         )
         self.valid_loader = DataLoader(self.valid_dataset, batch_size=self.config["batch_size"], shuffle=False)
 
@@ -115,9 +174,25 @@ class SuperResolutionTrainer:
                 f"experiment_{self.config['model']}_{self.config['loss_function']}"
             )
         )
+    def load_pretrained_model(self):
+        """Check for a pretrained model in the saved directory and load it if available."""
+        # save_dir = self.config.get("model_save_dir", "saved_models")
+        save_dir = f"saved_models"
+
+        model_name = f"{self.model_name}_{self.loss_fn_name}.pth"
+        model_path = os.path.join(save_dir, model_name)
+        model_path = os.path.join(self.config.get("model_save_dir", "saved_models"), f"{self.model_name}_{self.loss_fn_name}.pth")
+
+        if os.path.exists(model_path):
+            print(f"Pretrained model found at {model_path}. Loading...")
+            checkpoint = t.load(model_path, map_location=self.device)
+            self.model.load_state_dict(checkpoint["model_state_dict"])
+            print("Pretrained model loaded successfully.")
+        else:
+            print(f"No pretrained model found at {model_path}. Starting from scratch.")
+
 
     def train(self):
         # Start the training process
         epochs = self.config.get("epochs", 50)
         self.trainer.fit(epochs=epochs)
-

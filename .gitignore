@@ -7,4 +7,9 @@
 check.py
 /__pycache__
 *.pyc
+<<<<<<< HEAD
 *.png
+=======
+*.png
+
+>>>>>>> d1f3616f8b37d6e16dcb3f070576f48521d5f23a

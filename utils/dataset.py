@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 class SRDataset(Dataset):
-    def __init__(self, hr_dir, lr_dir, transform=None, hr_size=(128, 128), lr_size=(32, 32)):
+    def __init__(self, hr_dir, lr_dir, transform=None, hr_size=(256, 256), lr_size=(64, 64)):
         """
         Parameters:
         - hr_dir: Path to high-resolution images
