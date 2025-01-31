@@ -7,3 +7,5 @@
 check.py
 /__pycache__
 *.pyc
+*.png
+/NAFNet

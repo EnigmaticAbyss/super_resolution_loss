@@ -45,8 +45,13 @@ class Trainer:
 
         for i, (lr_imgs, hr_imgs) in enumerate(tqdm(self.train_dataloader, desc=f"Training Epoch {epoch}")):
             lr_imgs, hr_imgs = lr_imgs.to(self.device), hr_imgs.to(self.device)
+            # print("lr")
+            # print(lr_imgs.shape)
             sr_imgs = self.model(lr_imgs)
-
+            # print("HR img")
+            # print(hr_imgs.shape)
+            # print("SR IMG")
+            # print(sr_imgs.shape)
             # Calculate loss
             loss = self.loss_fn(sr_imgs, hr_imgs)
 
@@ -75,11 +80,13 @@ class Trainer:
 
         with torch.no_grad():
             for lr_imgs, hr_imgs in tqdm(self.val_dataloader, desc="Validation"):
+                            
                 lr_imgs, hr_imgs = lr_imgs.to(self.device), hr_imgs.to(self.device)
                 sr_imgs = self.model(lr_imgs)
-
+       
                 # Calculate loss
                 loss = self.loss_fn(sr_imgs, hr_imgs)
+  
                 total_loss += loss.item()
 
                 # Optionally: calculate additional metrics like PSNR and SSIM
