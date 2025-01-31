@@ -51,7 +51,7 @@ def run_experiments():
 
     if config_files:
         print("\nStarting Experiments...\n")
-        run_training(config_files)
+        # run_training(config_files)
         run_evaluation(config_files)
         print("\nExperiments completed.\n")
     else:
@@ -62,8 +62,8 @@ if __name__ == "__main__":
     run_experiments()
 
     # Display a batch comparison (per folder)
-    try:
-        display_images_from_folders("test_results")
-    except Exception as e:
+    # try:
+    #     # display_images_from_folders("test_results")
+    # except Exception as e:
         
-        print(f"Error displaying results: {e}")
+    #     print(f"Error displaying results: {e}")
