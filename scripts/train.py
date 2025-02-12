@@ -90,9 +90,9 @@ class SuperResolutionTrainer:
             self.model = SwinIR(
                 upscale=4, 
                 in_chans=3, 
-                img_size=64, 
+                img_size=56, 
                 window_size=8, 
-                img_range=255, 
+                img_range=224, 
                 depths=[6, 6, 6, 6], 
                 embed_dim=180, 
                 num_heads=[6, 6, 6, 6], 
