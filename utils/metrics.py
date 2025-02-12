@@ -79,10 +79,10 @@ def calculate_ssim(sr, hr):
     
     return ssim_values
 
-def calculate_fid_score(sr, hr, device="cuda"):
-    """Calculates FID for a batch of images using torch-fidelity."""
-import torch
-from torch_fidelity import calculate_metrics
+# def calculate_fid_score(sr, hr, device="cuda"):
+#     """Calculates FID for a batch of images using torch-fidelity."""
+# import torch
+# from torch_fidelity import calculate_metrics
 
 def calculate_fid_score(sr, hr, device="cuda"):
     """
@@ -106,23 +106,23 @@ def calculate_fid_score(sr, hr, device="cuda"):
     if sr.max() > 1.0 or hr.max() > 1.0:
         sr = sr / 255.0
         hr = hr / 255.0
-    
+
     # Create a dictionary of input batches
     inputs = {
         'samples1': hr,
         'samples2': sr,
     }
-    
+
     # Calculate FID using torch-fidelity
     metrics = calculate_metrics(
         input1=inputs['samples1'],
         input2=inputs['samples2'],
-        metrics=['fid'],
+        fid = True,
         device=device
     )
-    
+ 
     # Extract FID score
-    fid_score = metrics['frechet_inception_distance']
+    fid_score = metrics
     
     return fid_score
 
