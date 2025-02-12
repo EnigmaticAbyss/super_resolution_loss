@@ -1,16 +1,19 @@
-#!/bin/bash -l                     # Interpreter directive; -l is necessary to initialize modules correctly!
-#
+#!/bin/bash -l
 
-#SBATCH --partition=rtx2080ti 
-#SBATCH --gres=gpu:1      #All #SBATCH lines have to follow uninterrupted
-#SBATCH --time=6:00:00            
-#SBATCH --job-name=jobofmine
-#SBATCH --mail-user=arashmousavi193@gmail.com            # do not export environment from submitting shell
+#SBATCH --job-name=face
+
+#SBATCH --partition=rtx3080
+#SBATCH --clusters=tinygpu
+#SBATCH --gres=gpu:rtx3080:1
+#SBATCH --time=24:00:00
+#SBATCH --nodes=1
+#SBATCH --export=NONE
+#SBATCH --mail-user=arashmousavi193@gmail.com
 #SBATCH --mail-type=ALL
-#SBATCH --export=NONE                                       # first non-empty non-comment line ends SBATCH options
-unset SLURM_EXPORT_ENV             # enable export of environment from this script to srun
-eval "$(conda shell.bash hook)" 
-conda activate SuperRes
+
+                             # first non-empty non-comment line ends SBATCH options
+. ~/.bashrc # if you dont work with conda, comment this 
+source activate SuperRes #and this
          # Setup job environment (load modules, stage data, ...)
 
 python3 -u ./main.py       # Execute parallel application

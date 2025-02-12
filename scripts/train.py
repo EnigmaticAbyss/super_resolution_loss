@@ -88,7 +88,7 @@ class SuperResolutionTrainer:
         # Initialize SwinIR model for classical SR (e.g., x4 scaling)
             raise NotImplementedError("NafNet model not implemented yet!")
 
-<<<<<<< HEAD
+
             self.model = SwinIR(
                 upscale=4, 
                 in_chans=3, 
@@ -114,7 +114,7 @@ class SuperResolutionTrainer:
             #     mlp_ratio=2, 
             #     upsampler='pixelshuffle'
             # )
->>>>>>> 2e3041e1bed849d14f199c29730b3d035d09b4b6
+      
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
