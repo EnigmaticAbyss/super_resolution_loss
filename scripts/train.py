@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from models.esrgan import ESRGANGenerator
 from torchsr.models import edsr
-# from models.SwinIR.models.network_swinir import SwinIR
+from models.SwinIR.models.network_swinir import SwinIR
 
 from losses.FrequencyLoss import FrequencyLoss
 from losses.FourierFeaturePerceptualLoss import FourierFeaturePerceptualLoss
@@ -86,9 +86,13 @@ class SuperResolutionTrainer:
             raise NotImplementedError("NafNet model not implemented yet!")
         elif model_type == "SwinIR":
         # Initialize SwinIR model for classical SR (e.g., x4 scaling)
-            raise NotImplementedError("NafNet model not implemented yet!")
+            # raise NotImplementedError("NafNet model not implemented yet!")
 
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> 422f6bf21d5620e424544c210f5dbdda7dbe8089
             self.model = SwinIR(
                 upscale=4, 
                 in_chans=3, 
@@ -114,7 +118,11 @@ class SuperResolutionTrainer:
             #     mlp_ratio=2, 
             #     upsampler='pixelshuffle'
             # )
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 422f6bf21d5620e424544c210f5dbdda7dbe8089
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 

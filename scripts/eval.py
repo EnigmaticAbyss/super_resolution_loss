@@ -123,7 +123,7 @@ class SuperResolutionEvaluator:
                 single_psnr = calculate_psnr(sr_img, hr_img)
                 single_ssim = calculate_ssim(sr_img, hr_img)
                 # single_fid = calculate_fid_score(sr_img, hr_img)
-                # single_lpips = calculate_lpips_score(sr_img, hr_img)
+                single_lpips = calculate_lpips_score(sr_img, hr_img)
 
 
 
@@ -131,7 +131,7 @@ class SuperResolutionEvaluator:
                 self.writer.add_scalar("Metrics/PSNR", single_psnr[0], self.iteration)
                 self.writer.add_scalar("Metrics/SSIM", single_ssim[0], self.iteration)
                 # self.writer.add_scalar("Metrics/FID", single_fid[0], self.iteration)
-                # self.writer.add_scalar("Metrics/LPIPS", single_lpips[0], self.iteration)
+                self.writer.add_scalar("Metrics/LPIPS", single_lpips[0], self.iteration)
                 
 
                 # Create a folder for each image's results

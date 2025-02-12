@@ -358,9 +358,9 @@ class HieraPerceptualLoss(nn.Module):
         magnitudes, phases = [], []
         for feature in features:
             fft_feature = fft.fft2(feature, dim=(-2, -1))
-            fft_feature_shifted = fft.fftshift(fft_feature, dim=(-2, -1))
-            magnitudes.append(torch.abs(fft_feature_shifted))
-            phases.append(torch.angle(fft_feature_shifted))
+            # fft_feature_shifted = fft.fftshift(fft_feature, dim=(-2, -1))
+            magnitudes.append(torch.abs(fft_feature))
+            phases.append(torch.angle(fft_feature))
         return magnitudes, phases
 
     def compute_patch_loss(self, sr_batch, hr_batch):
