@@ -129,18 +129,16 @@ def calculate_fid_score(sr, hr, device="cuda"):
 
 def calculate_lpips_score(sr, hr, device="cuda"):
     """Calculates LPIPS for a batch of images."""
-    # Initialize LPIPS model
-    lpips_model = lpips.LPIPS(net='alex')  # 'alex' is a common option for LPIPS
+    # Initialize LPIPS model and move it to the desired device
+    lpips_model = lpips.LPIPS(net='alex').to(device)  # Ensure the model is on CUDA
 
     lpips_values = []
     for i in range(sr.shape[0]):
-        sr_np = sr[i].cpu().detach().unsqueeze(0)  # [1, C, H, W]
-        hr_np = hr[i].cpu().detach().unsqueeze(0)  # [1, C, H, W]
-        
+        sr_tensor = sr[i].to(device)  # Move tensor to CUDA
+        hr_tensor = hr[i].to(device)  # Move tensor to CUDA
+
         # Compute LPIPS
-        sr = sr_np.to(device)
-        hr = hr_np.to(device)
-        lpips_value = lpips_model(sr, hr)
+        lpips_value = lpips_model(sr_tensor.unsqueeze(0), hr_tensor.unsqueeze(0))
         lpips_values.append(lpips_value.item())
 
     return lpips_values
