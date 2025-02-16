@@ -5,7 +5,7 @@
 /saved_models
 /papers
 check.py
-/__pycache__
-*.pyc
 *.png
-
+__pycache__/
+*.pyc
+*.pyo
