@@ -14,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from models.esrgan import ESRGANGenerator
 from torchsr.models import edsr
+from torchsr.models import ninasr_b2
 from models.SwinIR.models.network_swinir import SwinIR
 
 from losses.FrequencyLoss import FrequencyLoss
@@ -26,7 +27,7 @@ from losses.perceptual_loss import PerceptualLoss
 from losses.perceptual_loss import PerceptualLoss
 from losses.CombinedLoss import CombinedLoss
 from losses.HieraPerceptual import HieraPerceptualLoss  # Import your custom loss class
-
+from losses.HieraNoFreqpPercep import HieraNoFreqpPercep
 
 
 from utils.train_utils import Trainer
@@ -84,12 +85,11 @@ class SuperResolutionTrainer:
             #  self.model = edsr(scale=4, pretrained=True)
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
+        elif model_type == "NinaSR":
+             self.model = ninasr_b2(scale=4, pretrained=False).to(self.device)            
         elif model_type == "SwinIR":
         # Initialize SwinIR model for classical SR (e.g., x4 scaling)
             # raise NotImplementedError("NafNet model not implemented yet!")
-
-
-
             self.model = SwinIR(
                 upscale=4, 
                 in_chans=3, 
@@ -133,6 +133,15 @@ class SuperResolutionTrainer:
            
             # Initialize Hiera-based perceptual loss
             self.loss_fn = HieraPerceptualLoss(layers=['2'], device='cuda')
+        elif loss_type == "HieraNoFreqpPercep":
+           
+            # Initialize Hiera-based perceptual loss
+            self.loss_fn = HieraNoFreqpPercep(layers=['2'], device='cuda')
+            
+                        
+            
+            
+        
         else:
             raise ValueError(f"Unsupported loss function: {loss_type}")
 

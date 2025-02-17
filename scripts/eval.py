@@ -19,6 +19,8 @@ from models.esrgan import ESRGANGenerator
 from utils.dataset import SRDataset
 from utils.metrics import calculate_psnr, calculate_ssim,calculate_fid_score,calculate_lpips_score
 from torchsr.models import edsr
+from torchsr.models import ninasr_b2
+
 from models.SwinIR.models.network_swinir import SwinIR
 
 
@@ -49,6 +51,8 @@ class SuperResolutionEvaluator:
             self.model = edsr(scale=4,pretrained=False).to(self.device)
         elif model_type == "NafNet":
             raise NotImplementedError("NafNet model not implemented yet!")
+        elif model_type == "NinaSR":
+            self.model = ninasr_b2(scale=4, pretrained=False).to(self.device)      
         elif model_type == "SwinIR":
         # Initialize SwinIR model for classical SR (e.g., x4 scaling)
             self.model = SwinIR(
