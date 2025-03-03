@@ -63,25 +63,39 @@ class SuperResolutionEvaluator:
                 img_range=224, 
                 depths=[6, 6, 6, 6], 
                 embed_dim=180, 
-                num_heads=[6, 6, 6, 6], 
+                # num_heads=[6, 6, 6, 6], 
                 mlp_ratio=2, 
                 upsampler='pixelshuffle'
             ).to(self.device)        
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
+    # def _load_model(self):
+    #     # Load pre-trained model weights
+    #     model_name = self.config["model"]
+    #     loss_name = self.config["loss_function"]
+    #     model_path = os.path.join(self.config.get("model_save_dir", "saved_models"), f"{model_name}_{loss_name}.pth")
+        
+    #     if os.path.exists(model_path):
+    #         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+    #         print(f"Model loaded successfully from {model_path}")
+    #     else:
+    #         raise FileNotFoundError(f"Model file not found: {model_path}")
+        
+    #     self.model.eval()
     def _load_model(self):
-        # Load pre-trained model weights
         model_name = self.config["model"]
         loss_name = self.config["loss_function"]
         model_path = os.path.join(self.config.get("model_save_dir", "saved_models"), f"{model_name}_{loss_name}.pth")
-        
+
         if os.path.exists(model_path):
-            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+            checkpoint = torch.load(model_path, map_location=self.device)  # Load model on the correct device
+            self.model.load_state_dict(checkpoint)
+            self.model.to(self.device)  # Move model to GPU after loading
             print(f"Model loaded successfully from {model_path}")
         else:
             raise FileNotFoundError(f"Model file not found: {model_path}")
-        
+
         self.model.eval()
 
     def _prepare_test_loader(self):
