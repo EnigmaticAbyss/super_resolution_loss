@@ -99,7 +99,7 @@ class SuperResolutionTrainer:
                 img_range=224, 
                 depths=[6, 6, 6, 6], 
                 embed_dim=180, 
-                num_heads=[6, 6, 6, 6], 
+                # num_heads=[6, 6, 6, 6],  
                 mlp_ratio=2, 
                 upsampler='pixelshuffle'
             ).to(self.device)      
