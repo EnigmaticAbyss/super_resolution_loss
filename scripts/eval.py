@@ -66,7 +66,7 @@ class SuperResolutionEvaluator:
                 num_heads=[6, 6, 6, 6], 
                 mlp_ratio=2, 
                 upsampler='pixelshuffle'
-            )
+            ).to(self.device)   
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
