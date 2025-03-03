@@ -384,8 +384,15 @@ class HieraPerceptualLoss(nn.Module):
 
         # MSE Loss for Pixel Matching
         mse_loss = self.mse_loss(sr_batch, hr_batch)
+        print(f"MSE Loss: {mse_loss.item()}, Perceptual Loss: {perceptual_loss.item()}")
+        # Weighting factors (adjust based on experiments)
+        lambda_mse = 1.0  
+        lambda_perceptual = 0.1  
 
-        return perceptual_loss + mse_loss  # Combined loss
+        # Compute total loss
+        total_loss = lambda_mse * mse_loss + lambda_perceptual * perceptual_loss
+        
+        return total_loss
     
     def forward(self, sr_image, hr_image):
         """ Compute perceptual loss for a batch of images. """

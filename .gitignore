@@ -9,3 +9,4 @@ check.py
 __pycache__/
 *.pyc
 *.pyo
+/legacy_models

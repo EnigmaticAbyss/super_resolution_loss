@@ -168,10 +168,13 @@ class FourierFeaturePerceptualLoss(nn.Module):
         # Compute MSE loss
         mse_loss = self.mse_loss(sr_patch, hr_patch)
 
-        # Combine losses
-        total_loss = perceptual_loss + mse_loss
-        return total_loss
+        lambda_mse = 1.0  
+        lambda_perceptual = 0.1  
 
+        # Compute total loss
+        total_loss = lambda_mse * mse_loss + lambda_perceptual * perceptual_loss
+        
+        return total_loss
 
     def forward(self, sr_image, hr_image, alpha=0.5, beta=0.5):
         """Compute combined loss (Fourier Feature Perceptual + MSE) between SR and HR images."""

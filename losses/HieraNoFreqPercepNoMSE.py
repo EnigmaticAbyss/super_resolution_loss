@@ -5,7 +5,7 @@ import torch.fft as fft
 import torch.nn.functional as F
 from hiera import hiera_base_224  # Load pre-trained Hiera model
 
-class HieraNoFreqpPercep(nn.Module):
+class HieraNoFreqPercepNoMSE(nn.Module):
     def __init__(self, layers=[1], device='cuda', alpha=0.5):
         """
         Computes perceptual loss using intermediate features from Hiera.
@@ -77,9 +77,9 @@ class HieraNoFreqpPercep(nn.Module):
         # perceptual_loss = self.alpha * mag_loss + (1 - self.alpha) * phase_loss
 
         # MSE Loss for Pixel Matching
-        mse_loss = self.mse_loss(sr_batch, hr_batch)
+        # mse_loss = self.mse_loss(sr_batch, hr_batch)
 
-        return perceptual_loss + mse_loss  # Combined loss
+        return perceptual_loss  # Combined loss
     
     def forward(self, sr_image, hr_image):
         """ Compute perceptual loss for a batch of images. """

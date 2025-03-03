@@ -27,8 +27,9 @@ from losses.perceptual_loss import PerceptualLoss
 from losses.perceptual_loss import PerceptualLoss
 from losses.CombinedLoss import CombinedLoss
 from losses.HieraPerceptual import HieraPerceptualLoss  # Import your custom loss class
-from losses.HieraNoFreqpPercep import HieraNoFreqpPercep
-
+from losses.HieraNoFreqPercep import HieraNoFreqPercep
+from losses.HieraNoFreqPercepNoMSE import HieraNoFreqPercepNoMSE
+from losses.HieraPerceptualLossNoMSE import HieraPerceptualLossNoMSE
 
 from utils.train_utils import Trainer
 
@@ -101,7 +102,7 @@ class SuperResolutionTrainer:
                 num_heads=[6, 6, 6, 6], 
                 mlp_ratio=2, 
                 upsampler='pixelshuffle'
-            )
+            ).to(self.device)      
 
 
 
@@ -136,10 +137,15 @@ class SuperResolutionTrainer:
         elif loss_type == "HieraNoFreqpPercep":
            
             # Initialize Hiera-based perceptual loss
-            self.loss_fn = HieraNoFreqpPercep(layers=['2'], device='cuda')
-            
-                        
-            
+            self.loss_fn = HieraNoFreqPercep(layers=['2'], device='cuda')
+        elif loss_type == "HieraNoFreqPercepNoMSE":
+           
+            # Initialize Hiera-based perceptual loss
+            self.loss_fn = HieraNoFreqPercepNoMSE(layers=['2'], device='cuda')
+        elif loss_type == "HieraPerceptualLossNoMSE":
+           
+            # Initialize Hiera-based perceptual loss
+            self.loss_fn = HieraPerceptualLossNoMSE(layers=['2'], device='cuda')
             
         
         else:
