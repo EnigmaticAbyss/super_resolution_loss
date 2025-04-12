@@ -133,19 +133,19 @@ class SuperResolutionTrainer:
         elif loss_type == "HieraPerceptualLoss":
            
             # Initialize Hiera-based perceptual loss
-            self.loss_fn = HieraPerceptualLoss(layers=['2'], device='cuda')
+            self.loss_fn = HieraPerceptualLoss(layers=['3'], device='cuda')
         elif loss_type == "HieraNoFreqpPercep":
            
             # Initialize Hiera-based perceptual loss
-            self.loss_fn = HieraNoFreqPercep(layers=['2'], device='cuda')
+            self.loss_fn = HieraNoFreqPercep(layers=['3'], device='cuda')
         elif loss_type == "HieraNoFreqPercepNoMSE":
            
             # Initialize Hiera-based perceptual loss
-            self.loss_fn = HieraNoFreqPercepNoMSE(layers=['2'], device='cuda')
+            self.loss_fn = HieraNoFreqPercepNoMSE(layers=['3'], device='cuda')
         elif loss_type == "HieraPerceptualLossNoMSE":
            
             # Initialize Hiera-based perceptual loss
-            self.loss_fn = HieraPerceptualLossNoMSE(layers=['2'], device='cuda')
+            self.loss_fn = HieraPerceptualLossNoMSE(layers=['3'], device='cuda')
             
         
         else:

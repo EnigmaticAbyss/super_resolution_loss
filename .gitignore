@@ -10,3 +10,4 @@ __pycache__/
 *.pyc
 *.pyo
 /legacy_models
+*.o
