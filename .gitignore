@@ -10,4 +10,6 @@ __pycache__/
 *.pyc
 *.pyo
 /legacy_models
-*.o
+face.o*
+/models/SwinIR
+/old_logs
