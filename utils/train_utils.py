@@ -68,7 +68,7 @@ class Trainer:
         print(f"Epoch {epoch}, Average Loss: {avg_loss}")
         return avg_loss
 
-    def validate(self):
+    def validate(self, epoch_counter):
         """
         Validates the model on the validation dataset.
         
@@ -79,7 +79,7 @@ class Trainer:
         total_loss = 0
 
         with torch.no_grad():
-            for lr_imgs, hr_imgs in tqdm(self.val_dataloader, desc="Validation"):
+            for batch_idx,(lr_imgs, hr_imgs) in enumerate(tqdm(self.val_dataloader, desc="Validation")):
                             
                 lr_imgs, hr_imgs = lr_imgs.to(self.device), hr_imgs.to(self.device)
                 sr_imgs = self.model(lr_imgs)
@@ -93,6 +93,25 @@ class Trainer:
                 # psnr = calculate_psnr(sr_imgs, hr_imgs)
                 # ssim = calculate_ssim(sr_imgs, hr_imgs)
                 # log or accumulate these metrics if desired
+            # Visualize feature maps every 5 epochs and on the first batch of validation
+            if self.writer is not None and epoch_counter % 5 == 0 and batch_idx == 0:
+                # Extract features for SR and HR images
+                sr_features = self.loss_fn.extract_features(sr_imgs)
+                hr_features = self.loss_fn.extract_features(hr_imgs)
+
+                # Create grids for SR and HR features
+                sr_grids = self.loss_fn.create_feature_grid(sr_features)
+                hr_grids = self.loss_fn.create_feature_grid(hr_features)
+
+                # Log the grids of SR and HR feature maps to TensorBoard
+                for i, (sr_grid, hr_grid) in enumerate(zip(sr_grids, hr_grids)):
+                    # Log feature maps
+                    self.writer.add_image(f"FeatureMaps/SR/layer_{i}", sr_grid, epoch_counter)
+                    self.writer.add_image(f"FeatureMaps/HR/layer_{i}", hr_grid, epoch_counter)
+
+                    # Create side-by-side comparison and log it
+                    side_by_side = torch.cat([sr_grid, hr_grid], dim=2)  # Concatenate along the width (horizontal)
+                    self.writer.add_image(f"FeatureMaps/Comparison/layer_{i}", side_by_side, epoch_counter)
 
         avg_loss = total_loss / len(self.val_dataloader)
         print(f"Validation Loss: {avg_loss}")
@@ -128,7 +147,7 @@ class Trainer:
             
             # Train and validate for one epoch
             train_loss = self.train_epoch(epoch_counter)
-            val_loss = self.validate()
+            val_loss = self.validate(epoch_counter)
             
             
             #  # Logging info

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
+import torchvision.utils as vutils  # ADD THIS for grids
 
 class PerceptualLoss(nn.Module):
     def __init__(self, layers=['relu_3'], device='cuda'):
@@ -47,3 +48,24 @@ class PerceptualLoss(nn.Module):
             # print("Perceptual loss")
             # print(loss.shape)        
         return loss
+    def extract_features(self, img):
+        """Extract intermediate features from VGG for visualization."""
+        features = []
+        x = img
+        for layer in self.selected_layers:
+            x = layer(x)
+            features.append(x)
+        return features
+
+    def create_feature_grid(self, features, nrow=8):
+        """Create a grid of feature maps for TensorBoard."""
+        grids = []
+        for feat in features:
+            # Only take the first sample in batch
+            feat = feat[0]  # (C, H, W)
+            # Normalize feature maps for visualization
+            feat = (feat - feat.min()) / (feat.max() - feat.min() + 1e-5)
+            # Make a grid
+            grid = vutils.make_grid(feat.unsqueeze(1), nrow=nrow, normalize=False, padding=1)
+            grids.append(grid)
+        return grids
