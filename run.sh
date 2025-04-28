@@ -5,10 +5,10 @@
 #SBATCH --partition=a100
 #SBATCH --clusters=tinygpu
 #SBATCH --gres=gpu:a100:1
-#SBATCH --time=9:00:00
+#SBATCH --time=06:00:00
 #SBATCH --nodes=1
 #SBATCH --export=NONE
-#SBATCH --mail-user=arashmousavi193@gm+ail.com
+#SBATCH --mail-user=arashmousavi193@gmail.com
 #SBATCH --mail-type=ALL
 
                              # first non-empty non-comment line ends SBATCH options
