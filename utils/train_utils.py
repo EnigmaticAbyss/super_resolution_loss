@@ -77,7 +77,7 @@ class Trainer:
         """
         self.model.eval()
         total_loss = 0
-
+        # print("OUTSIDE")
         with torch.no_grad():
             for batch_idx,(lr_imgs, hr_imgs) in enumerate(tqdm(self.val_dataloader, desc="Validation")):
                             
@@ -94,24 +94,31 @@ class Trainer:
                 # ssim = calculate_ssim(sr_imgs, hr_imgs)
                 # log or accumulate these metrics if desired
             # Visualize feature maps every 5 epochs and on the first batch of validation
-            if self.writer is not None and epoch_counter % 5 == 0 and batch_idx == 0:
-                # Extract features for SR and HR images
-                sr_features = self.loss_fn.extract_features(sr_imgs)
-                hr_features = self.loss_fn.extract_features(hr_imgs)
+                # print(batch_idx)
+                # print("OUTSIDE")
 
-                # Create grids for SR and HR features
-                sr_grids = self.loss_fn.create_feature_grid(sr_features)
-                hr_grids = self.loss_fn.create_feature_grid(hr_features)
+                # and epoch_counter % 5 == 0
+                if self.writer is not None and epoch_counter % 5 == 0 and batch_idx == 0:                   
+                    # print("INSIDE")
+                    # Extract features for SR and HR images
+                    sr_features = self.loss_fn.extract_features(sr_imgs)
+                    hr_features = self.loss_fn.extract_features(hr_imgs)
 
-                # Log the grids of SR and HR feature maps to TensorBoard
-                for i, (sr_grid, hr_grid) in enumerate(zip(sr_grids, hr_grids)):
-                    # Log feature maps
-                    self.writer.add_image(f"FeatureMaps/SR/layer_{i}", sr_grid, epoch_counter)
-                    self.writer.add_image(f"FeatureMaps/HR/layer_{i}", hr_grid, epoch_counter)
+                    # Create grids for SR and HR features
+                    sr_grids = self.loss_fn.create_feature_grid(sr_features)
+                    hr_grids = self.loss_fn.create_feature_grid(hr_features)
+                    # Normalize HR image to [0,1] for visualization (TensorBoard expects 3D or 4D tensors in [0,1])
+                    normalized_hr = (hr_imgs[0] - hr_imgs[0].min()) / (hr_imgs[0].max() - hr_imgs[0].min() + 1e-5)
+                    # Log the grids of SR and HR feature maps to TensorBoard
+                    for i, (sr_grid, hr_grid) in enumerate(zip(sr_grids, hr_grids)):
+                        # Log feature maps
+                        self.writer.add_image(f"FeatureMaps/SR/layer_{i}", sr_grid, epoch_counter)
+                        self.writer.add_image(f"FeatureMaps/HR/layer_{i}", hr_grid, epoch_counter)
 
-                    # Create side-by-side comparison and log it
-                    side_by_side = torch.cat([sr_grid, hr_grid], dim=2)  # Concatenate along the width (horizontal)
-                    self.writer.add_image(f"FeatureMaps/Comparison/layer_{i}", side_by_side, epoch_counter)
+                        # Create side-by-side comparison and log it
+                        side_by_side = torch.cat([sr_grid, hr_grid], dim=2)  # Concatenate along the width (horizontal)
+                        self.writer.add_image(f"FeatureMaps/Comparison/layer_{i}", side_by_side, epoch_counter)
+                        self.writer.add_image(f"FeatureMaps/HR_Image/layer_{i}", normalized_hr, epoch_counter)
 
         avg_loss = total_loss / len(self.val_dataloader)
         print(f"Validation Loss: {avg_loss}")
