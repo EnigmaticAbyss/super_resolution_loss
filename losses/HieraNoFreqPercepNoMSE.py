@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import torch.fft as fft
 import torch.nn.functional as F
+import torchvision.utils as vutils  # ADD THIS for grids
+
 from hiera import hiera_base_224  # Load pre-trained Hiera model
 
 class HieraNoFreqPercepNoMSE(nn.Module):
@@ -91,3 +93,15 @@ class HieraNoFreqPercepNoMSE(nn.Module):
 
         return total_loss
 
+    def create_feature_grid(self, features, nrow=8):
+        """Create a grid of feature maps for TensorBoard."""
+        grids = []
+        for feat in features:
+            # Only take the first sample in batch
+            feat = feat[0]  # (C, H, W)
+            # Normalize feature maps for visualization
+            feat = (feat - feat.min()) / (feat.max() - feat.min() + 1e-5)
+            # Make a grid
+            grid = vutils.make_grid(feat.unsqueeze(1), nrow=nrow, normalize=False, padding=1)
+            grids.append(grid)
+        return grids

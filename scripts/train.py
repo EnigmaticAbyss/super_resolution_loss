@@ -60,9 +60,10 @@ class SuperResolutionTrainer:
     )
         self.model_name = self.config["model"]
         self.loss_fn_name = self.config["loss_function"]  
+        self.loss_layer = None
         self._setup_paths()
         self._initialize_model()
-        self.load_pretrained_model()  # Load pretrained model right after model initialization
+        # self.load_pretrained_model()  # Load pretrained model right after model initialization
 
         self._initialize_loss()
         self._initialize_data_loaders()
@@ -141,7 +142,7 @@ class SuperResolutionTrainer:
         elif loss_type == "HieraNoFreqPercepNoMSE":
            
             # Initialize Hiera-based perceptual loss
-            self.loss_fn = HieraNoFreqPercepNoMSE(layers=['3'], device='cuda')
+            self.loss_fn = HieraNoFreqPercepNoMSE(layers=['2'], device='cuda')
         elif loss_type == "HieraPerceptualLossNoMSE":
            
             # Initialize Hiera-based perceptual loss
@@ -189,18 +190,27 @@ class SuperResolutionTrainer:
 
     def _initialize_tensorboard(self):
         # Set up TensorBoard writer
+        if hasattr(self.loss_fn, 'selected_layers'):
+            self.loss_layer = self.loss_fn.selected_layers
+        else:
+            self.loss_layer = None  # Or handle it some other way
+
         self.writer = SummaryWriter(
             log_dir=os.path.join(
                 self.config.get("log_dir", "logs/tensorboard"),
-                f"experiment_{self.config['model']}_{self.config['loss_function']}"
+                f"experiment_{self.config['model']}_{self.config['loss_function']}_{self.loss_layer}"
             )
         )
     def load_pretrained_model(self):
         """Check for a pretrained model in the saved directory and load it if available."""
         # save_dir = self.config.get("model_save_dir", "saved_models")
         save_dir = f"saved_models"
-
-        model_name = f"{self.model_name}_{self.loss_fn_name}.pth"
+        # if hasattr(self.loss_fn, 'selected_layers'):
+        #     self.loss_layer = self.loss_fn.selected_layers
+        # else:
+        #     self.loss_layer = None  # Or handle it some other way
+            
+        model_name = f"{self.model_name}_{self.loss_fn_name}_{self.loss_layer}.pth"
         model_path = os.path.join(save_dir, model_name)
         model_path = os.path.join(self.config.get("model_save_dir", "saved_models"), f"{self.model_name}_{self.loss_fn_name}.pth")
 

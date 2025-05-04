@@ -2,6 +2,7 @@ import os
 import torch
 from tqdm import tqdm
 from torch.optim.lr_scheduler import CosineAnnealingLR
+import torchvision.utils as vutils  # ADD THIS for grids
 
 class Trainer:
     def __init__(self, model, optimizer, loss_fn, train_dataloader, val_dataloader, device='cuda',early_stopping_patience=10,writer=None):
@@ -28,8 +29,12 @@ class Trainer:
         self.writer= writer
     # Dynamically determine model and loss function names
         self.model_name = self.model.__class__.__name__
-        self.loss_fn_name = self.loss_fn.__class__.__name__   
-
+        self.loss_fn_name = self.loss_fn.__class__.__name__ 
+        if hasattr(self.loss_fn, 'selected_layers'):
+            self.loss_layer = self.loss_fn.selected_layers
+        else:
+            self.loss_layer = None  # Or handle it some other way
+            
     def train_epoch(self, epoch):
         """
         Trains the model for one epoch.
@@ -101,8 +106,13 @@ class Trainer:
                 if self.writer is not None and epoch_counter % 5 == 0 and batch_idx == 0:                   
                     # print("INSIDE")
                     # Extract features for SR and HR images
-                    sr_features = self.loss_fn.extract_features(sr_imgs)
-                    hr_features = self.loss_fn.extract_features(hr_imgs)
+                    # print(self.loss_fn_name)
+                    if self.loss_fn_name=="HieraNoFreqPercepNoMSE":
+                        sr_features = self.loss_fn.compute_features(sr_imgs)
+                        hr_features = self.loss_fn.compute_features(hr_imgs)
+                    else:
+                        sr_features = self.loss_fn.extract_features(sr_imgs)
+                        hr_features = self.loss_fn.extract_features(hr_imgs)
 
                     # Create grids for SR and HR features
                     sr_grids = self.loss_fn.create_feature_grid(sr_features)
@@ -142,7 +152,7 @@ class Trainer:
  
             
         #best model location
-        best_model_path = f"saved_models/{self.model_name}_{self.loss_fn_name}.pth"
+        best_model_path = f"saved_models/{self.model_name}_{self.loss_fn_name}_{self.loss_layer}.pth"
         temp_model_path = "saved_models"
         
         scheduler = CosineAnnealingLR(self.optimizer, T_max=epochs, eta_min= 1e-6)
@@ -204,7 +214,7 @@ class Trainer:
 
         # Remove any other temporary model checkpoints in the directory with the same name format as experience
         for filename in os.listdir(temp_path):
-            if filename.startswith(f"{self.model_name}_{self.loss_fn_name}") and filename.endswith(".pth"):
+            if filename.startswith(f"{self.model_name}_{self.loss_fn_name}_{self.loss_layer}") and filename.endswith(".pth"):
                 os.remove(os.path.join(temp_path, filename))
         # Save the best model and delete any other checkpoints       
         torch.save(self.model.state_dict(), best_path)
