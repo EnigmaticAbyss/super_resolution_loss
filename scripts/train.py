@@ -201,6 +201,7 @@ class SuperResolutionTrainer:
                 f"experiment_{self.config['model']}_{self.config['loss_function']}_{self.loss_layer}"
             )
         )
+        
     def load_pretrained_model(self):
         """Check for a pretrained model in the saved directory and load it if available."""
         # save_dir = self.config.get("model_save_dir", "saved_models")
