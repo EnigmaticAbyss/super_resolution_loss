@@ -1,8 +1,50 @@
 import os
+import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import torchvision.utils as vutils  # ADD THIS for grids
+
+
+
+
+def apply_colormap_to_tensor(tensor_img, cmap_name='jet'):
+    """
+    Apply matplotlib colormap to a single-channel tensor image.
+
+    Args:
+    - tensor_img: torch.Tensor (1, H, W), values in [0,1]
+    - cmap_name: matplotlib colormap name (default 'jet')
+
+    Returns:
+    - colored_tensor: torch.Tensor (3, H, W) with colormap applied
+    """
+    np_img = tensor_img.squeeze(0).cpu().numpy()  # (H, W)
+    cmap = plt.get_cmap(cmap_name)
+    colored_img = cmap(np_img)[:, :, :3]  # Drop alpha, shape (H, W, 3)
+    colored_img = colored_img.transpose(2, 0, 1)  # (3, H, W)
+    return torch.from_numpy(colored_img).float()
+
+
+def add_border(tensor_img, border_size=3, border_color=(1,1,1)):
+    """
+    Add colored border to a 3-channel image tensor.
+    
+    Args:
+    - tensor_img: torch.Tensor (3, H, W), assumed normalized [0,1]
+    - border_size: int, thickness of border in pixels
+    - border_color: tuple of 3 floats, RGB color of border in [0,1]
+
+    Returns:
+    - tensor_img_with_border: torch.Tensor (3, H+2*border_size, W+2*border_size)
+    """
+    c, h, w = tensor_img.shape
+    # Create border tensor filled with border_color
+    border = torch.ones((c, h + 2*border_size, w + 2*border_size), device=tensor_img.device) * torch.tensor(border_color, device=tensor_img.device).view(c,1,1)
+    # Place original image in the center
+    border[:, border_size:border_size+h, border_size:border_size+w] = tensor_img
+    return border
+
 
 class Trainer:
     def __init__(self, model, optimizer, loss_fn, train_dataloader, val_dataloader, device='cuda',early_stopping_patience=10,writer=None):
@@ -104,30 +146,38 @@ class Trainer:
 
                 # and epoch_counter % 5 == 0
                 if self.writer is not None and epoch_counter % 5 == 0 and batch_idx == 0:                   
-                    # print("INSIDE")
-                    # Extract features for SR and HR images
-                    # print(self.loss_fn_name)
-                    if self.loss_fn_name=="HieraNoFreqPercepNoMSE":
+                    if self.loss_fn_name == "HieraNoFreqPercepNoMSE":
                         sr_features = self.loss_fn.compute_features(sr_imgs)
                         hr_features = self.loss_fn.compute_features(hr_imgs)
                     else:
                         sr_features = self.loss_fn.extract_features(sr_imgs)
                         hr_features = self.loss_fn.extract_features(hr_imgs)
 
-                    # Create grids for SR and HR features
                     sr_grids = self.loss_fn.create_feature_grid(sr_features)
                     hr_grids = self.loss_fn.create_feature_grid(hr_features)
-                    # Normalize HR image to [0,1] for visualization (TensorBoard expects 3D or 4D tensors in [0,1])
-                    normalized_hr = (hr_imgs[0] - hr_imgs[0].min()) / (hr_imgs[0].max() - hr_imgs[0].min() + 1e-5)
-                    # Log the grids of SR and HR feature maps to TensorBoard
-                    for i, (sr_grid, hr_grid) in enumerate(zip(sr_grids, hr_grids)):
-                        # Log feature maps
-                        self.writer.add_image(f"FeatureMaps/SR/layer_{i}", sr_grid, epoch_counter)
-                        self.writer.add_image(f"FeatureMaps/HR/layer_{i}", hr_grid, epoch_counter)
 
-                        # Create side-by-side comparison and log it
-                        side_by_side = torch.cat([sr_grid, hr_grid], dim=2)  # Concatenate along the width (horizontal)
+                    normalized_hr = (hr_imgs[0] - hr_imgs[0].min()) / (hr_imgs[0].max() - hr_imgs[0].min() + 1e-5)
+
+                    border_size = 3  # pixels
+
+                    for i, (sr_grid, hr_grid) in enumerate(zip(sr_grids, hr_grids)):
+                        # Add colored borders
+                        sr_bordered = add_border(sr_grid, border_size, border_color=(0,1,0))    # Green border for SR
+                        hr_bordered = add_border(hr_grid, border_size, border_color=(0,0,1))    # Blue border for HR
+
+                        side_by_side = torch.cat([sr_bordered, hr_bordered], dim=2)  # Horizontally
+
+                        # Diff map
+                        diff = torch.abs(sr_grid - hr_grid)
+                        diff = (diff - diff.min()) / (diff.max() - diff.min() + 1e-5)
+                        diff_gray = diff.mean(dim=0, keepdim=True)
+                        diff_colored = apply_colormap_to_tensor(diff_gray, cmap_name='jet')
+                        diff_bordered = add_border(diff_colored, border_size, border_color=(1,0,0))  # Red border for Diff
+
+                        self.writer.add_image(f"FeatureMaps/SR/layer_{i}", sr_bordered, epoch_counter)
+                        self.writer.add_image(f"FeatureMaps/HR/layer_{i}", hr_bordered, epoch_counter)
                         self.writer.add_image(f"FeatureMaps/Comparison/layer_{i}", side_by_side, epoch_counter)
+                        self.writer.add_image(f"FeatureMaps/Diff_Colored/layer_{i}", diff_bordered, epoch_counter)
                         self.writer.add_image(f"FeatureMaps/HR_Image/layer_{i}", normalized_hr, epoch_counter)
 
         avg_loss = total_loss / len(self.val_dataloader)

@@ -36,13 +36,36 @@ model = hiera_base_224(pretrained=True).eval()
 batch_images = torch.randn(16, 3, 224, 224)  # Batch size = 8
 
 
-print("shape")
-print(batch_images.shape)
+# print("shape")
+# print(batch_images.shape)
 x, intermediates = model(batch_images, return_intermediates=True)
 print("Intermediate")
+print(model.stage_ends)
+# print(intermediates)
 print(len(intermediates))
-print(intermediates[2].shape)
-print(x.shape)
+# print(intermediates[2].shape)
+# print(x.shape)
 
-# Print output shape
-print("Output Shape:", batch_images.shape)  # Expected: (8, num_classes)
+# # Print output shape
+# print("Output Shape:", batch_images.shape)  # Expected: (8, num_classes)
+
+
+
+# from pathlib import Path
+
+
+
+# def handle_empty_config():
+#     """
+#     Handle the case when no configuration files are provided.
+#     """
+#     main_dir = Path(__file__).resolve().parent
+#     saved_model_dir = main_dir / "saved_models"
+
+#     saved_models = [f for f in saved_model_dir.iterdir() if f.is_file()]
+
+#     for saved_model in saved_models:
+#         print(f"Processing model: {saved_model}")
+#         # Your evaluation logic here
+        
+# handle_empty_config()

@@ -93,15 +93,33 @@ class HieraNoFreqPercepNoMSE(nn.Module):
 
         return total_loss
 
-    def create_feature_grid(self, features, nrow=8):
-        """Create a grid of feature maps for TensorBoard."""
-        grids = []
-        for feat in features:
-            # Only take the first sample in batch
-            feat = feat[0]  # (C, H, W)
-            # Normalize feature maps for visualization
-            feat = (feat - feat.min()) / (feat.max() - feat.min() + 1e-5)
-            # Make a grid
-            grid = vutils.make_grid(feat.unsqueeze(1), nrow=nrow, normalize=False, padding=1)
-            grids.append(grid)
-        return grids
+def create_feature_grid(self, features, max_channels=16, nrow=4):
+    """
+    Create a grid of feature maps for TensorBoard visualization.
+    Shows up to `max_channels` feature maps from the first image in the batch.
+    
+    Args:
+    - features: List of feature tensors (B, C, H, W)
+    - max_channels: Max number of channels per feature map to visualize
+    - nrow: Number of images per row in the grid
+    
+    Returns:
+    - List of grid images
+    """
+    grids = []
+    for feat in features:
+        # Use only the first image in the batch
+        feat = feat[0]  # shape (C, H, W)
+        
+        # Limit number of channels visualized
+        feat = feat[:max_channels]
+
+        # Normalize each feature map individually (channel-wise)
+        feat = (feat - feat.min(dim=1, keepdim=True)[0].min(dim=2, keepdim=True)[0]) / \
+               (feat.max(dim=1, keepdim=True)[0].max(dim=2, keepdim=True)[0] + 1e-5)
+        
+        # Convert (C, H, W) to (C, 1, H, W) for make_grid
+        feat = feat.unsqueeze(1)
+        grid = vutils.make_grid(feat, nrow=nrow, normalize=False, padding=1)
+        grids.append(grid)
+    return grids

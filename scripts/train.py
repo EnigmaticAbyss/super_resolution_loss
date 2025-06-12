@@ -226,5 +226,5 @@ class SuperResolutionTrainer:
 
     def train(self):
         # Start the training process
-        epochs = self.config.get("epochs", 50)
+        epochs = self.config.get("epochs", 100)
         self.trainer.fit(epochs=epochs)
