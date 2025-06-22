@@ -4,8 +4,72 @@ import torch
 from tqdm import tqdm
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import torchvision.utils as vutils  # ADD THIS for grids
+import torchvision.transforms as T
+import matplotlib.patches as patches
+from sklearn.decomposition import PCA
+from io import BytesIO
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
+
+def reduce_channels(feat, use_pca=True):
+    H, W, C = feat.shape
+    if use_pca and C > 1:
+        flat = feat.reshape(-1, C)
+        reduced = PCA(n_components=1).fit_transform(flat).reshape(H, W)
+    else:
+        reduced = feat[..., 0]
+    reduced -= reduced.min()
+    reduced /= reduced.max() + 1e-5
+    return reduced
+
+def fig_to_tensor(fig):
+    canvas = FigureCanvas(fig)
+    canvas.draw()
+    buf = BytesIO()
+    fig.savefig(buf, format='png')
+    buf.seek(0)
+    image = plt.imread(buf)
+    plt.close(fig)
+    return torch.tensor(image).permute(2, 0, 1).float()
+
+def show_hr_sr_features(hr_img, sr_img, hr_feat, sr_feat, stage_name, token_size):
+    feat_hr = hr_feat[0].detach().cpu().numpy()
+    feat_sr = sr_feat[0].detach().cpu().numpy()
+    H, W, C = feat_hr.shape
+    fmap_hr = reduce_channels(feat_hr)
+    fmap_sr = reduce_channels(feat_sr)
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+    fig.suptitle(f"{stage_name} — Shape: {hr_feat.shape}", fontsize=10)
+
+    for i in range(H):
+        for j in range(W):
+            x = j * token_size
+            y = i * token_size
+            rect = patches.Rectangle((x, y), token_size, token_size,
+                                     linewidth=0.5, edgecolor='lime', facecolor='none')
+            axes[0][0].add_patch(rect)
+            axes[1][0].add_patch(rect)
+
+    axes[0][0].imshow(hr_img)
+    axes[0][0].set_title("HR Image + Grid")
+    axes[0][0].axis('off')
+
+    axes[1][0].imshow(sr_img)
+    axes[1][0].set_title("SR Image + Grid")
+    axes[1][0].axis('off')
+
+    axes[0][1].imshow(fmap_hr, cmap='viridis')
+    axes[0][1].set_title("HR Feature Map")
+    axes[0][1].axis('off')
+
+    axes[1][1].imshow(fmap_sr, cmap='viridis')
+    axes[1][1].set_title("SR Feature Map")
+    axes[1][1].axis('off')
+
+    plt.tight_layout()
+    return fig_to_tensor(fig)
 
 
 def apply_colormap_to_tensor(tensor_img, cmap_name='jet'):
@@ -153,32 +217,50 @@ class Trainer:
                         sr_features = self.loss_fn.extract_features(sr_imgs)
                         hr_features = self.loss_fn.extract_features(hr_imgs)
 
-                    sr_grids = self.loss_fn.create_feature_grid(sr_features)
-                    hr_grids = self.loss_fn.create_feature_grid(hr_features)
+                    # sr_grids = self.loss_fn.create_feature_grid(sr_features)
+                    # hr_grids = self.loss_fn.create_feature_grid(hr_features)
 
-                    normalized_hr = (hr_imgs[0] - hr_imgs[0].min()) / (hr_imgs[0].max() - hr_imgs[0].min() + 1e-5)
+                    # normalized_hr = (hr_imgs[0] - hr_imgs[0].min()) / (hr_imgs[0].max() - hr_imgs[0].min() + 1e-5)
 
-                    border_size = 3  # pixels
+                    # border_size = 3  # pixels
 
-                    for i, (sr_grid, hr_grid) in enumerate(zip(sr_grids, hr_grids)):
-                        # Add colored borders
-                        sr_bordered = add_border(sr_grid, border_size, border_color=(0,1,0))    # Green border for SR
-                        hr_bordered = add_border(hr_grid, border_size, border_color=(0,0,1))    # Blue border for HR
+                    # for i, (sr_grid, hr_grid) in enumerate(zip(sr_grids, hr_grids)):
+                    #     # Add colored borders
+                    #     sr_bordered = add_border(sr_grid, border_size, border_color=(0,1,0))    # Green border for SR
+                    #     hr_bordered = add_border(hr_grid, border_size, border_color=(0,0,1))    # Blue border for HR
 
-                        side_by_side = torch.cat([sr_bordered, hr_bordered], dim=2)  # Horizontally
+                    #     side_by_side = torch.cat([sr_bordered, hr_bordered], dim=2)  # Horizontally
 
-                        # Diff map
-                        diff = torch.abs(sr_grid - hr_grid)
-                        diff = (diff - diff.min()) / (diff.max() - diff.min() + 1e-5)
-                        diff_gray = diff.mean(dim=0, keepdim=True)
-                        diff_colored = apply_colormap_to_tensor(diff_gray, cmap_name='jet')
-                        diff_bordered = add_border(diff_colored, border_size, border_color=(1,0,0))  # Red border for Diff
+                    #     # Diff map
+                    #     diff = torch.abs(sr_grid - hr_grid)
+                    #     diff = (diff - diff.min()) / (diff.max() - diff.min() + 1e-5)
+                    #     diff_gray = diff.mean(dim=0, keepdim=True)
+                    #     diff_colored = apply_colormap_to_tensor(diff_gray, cmap_name='jet')
+                    #     diff_bordered = add_border(diff_colored, border_size, border_color=(1,0,0))  # Red border for Diff
 
-                        self.writer.add_image(f"FeatureMaps/SR/layer_{i}", sr_bordered, epoch_counter)
-                        self.writer.add_image(f"FeatureMaps/HR/layer_{i}", hr_bordered, epoch_counter)
-                        self.writer.add_image(f"FeatureMaps/Comparison/layer_{i}", side_by_side, epoch_counter)
-                        self.writer.add_image(f"FeatureMaps/Diff_Colored/layer_{i}", diff_bordered, epoch_counter)
-                        self.writer.add_image(f"FeatureMaps/HR_Image/layer_{i}", normalized_hr, epoch_counter)
+                        # self.writer.add_image(f"FeatureMaps/SR/layer_{i}", sr_bordered, epoch_counter)
+                        # self.writer.add_image(f"FeatureMaps/HR/layer_{i}", hr_bordered, epoch_counter)
+                        # self.writer.add_image(f"FeatureMaps/Comparison/layer_{i}", side_by_side, epoch_counter)
+                        # self.writer.add_image(f"FeatureMaps/Diff_Colored/layer_{i}", diff_bordered, epoch_counter)
+                        # self.writer.add_image(f"FeatureMaps/HR_Image/layer_{i}", normalized_hr, epoch_counter)
+                    if self.loss_fn_name == "HieraNoFreqPercepNoMSE" and hasattr(self.loss_fn, 'hiera_model'):
+                        # hiera = self.loss_fn.hiera_model.eval().to(self.device)
+                        stage_token_sizes = {0: 4, 1: 8, 2: 16, 3: 32}
+
+                        hr_img = hr_imgs[0].unsqueeze(0)
+                        sr_img = sr_imgs[0].unsqueeze(0)
+                        pil_hr = T.ToPILImage()(hr_img.squeeze().cpu()).resize((224, 224))
+                        pil_sr = T.ToPILImage()(sr_img.squeeze().cpu()).resize((224, 224))
+
+                        # hr_feats = self.loss_fn.extract_features(hr_img)
+                        # sr_feats = self.loss_fn.extract_features(sr_img)
+
+                    # for i in self.loss_layer:
+                        token_size = stage_token_sizes.get(int(self.loss_layer[0]), 4)
+                        vis_tensor = show_hr_sr_features(
+                            pil_hr, pil_sr, hr_features, sr_features, f"Stage {int(self.loss_layer[0])}", token_size
+                        )
+                        self.writer.add_image(f"HieraCompare/Stage_{int(self.loss_layer[0])}", vis_tensor, epoch_counter)
 
         avg_loss = total_loss / len(self.val_dataloader)
         print(f"Validation Loss: {avg_loss}")
