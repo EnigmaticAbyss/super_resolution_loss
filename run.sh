@@ -1,11 +1,11 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=face
+#SBATCH --job-name=SuperRes
 
 #SBATCH --partition=a100
 #SBATCH --clusters=tinygpu
 #SBATCH --gres=gpu:a100:1
-#SBATCH --time=12:00:00
+#SBATCH --time=15:00:00
 #SBATCH --nodes=1
 #SBATCH --export=NONE
 #SBATCH --mail-user=arashmousavi193@gmail.com

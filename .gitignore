@@ -8,9 +8,12 @@ check.py
 *.png
 __pycache__/
 *.pyc
+environment.yml
 *.pyo
 /legacy_models
 face.o*
+SuperRes.o*
 /models/SwinIR
 /old_logs
 your_image.jpg
+test.py
