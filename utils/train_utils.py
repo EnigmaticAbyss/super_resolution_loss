@@ -243,7 +243,8 @@ class Trainer:
                         # self.writer.add_image(f"FeatureMaps/Comparison/layer_{i}", side_by_side, epoch_counter)
                         # self.writer.add_image(f"FeatureMaps/Diff_Colored/layer_{i}", diff_bordered, epoch_counter)
                         # self.writer.add_image(f"FeatureMaps/HR_Image/layer_{i}", normalized_hr, epoch_counter)
-                    if self.loss_fn_name == "HieraNoFreqPercepNoMSE" and hasattr(self.loss_fn, 'hiera_model'):
+
+                    if self.loss_fn_name == "HieraNoFreqPercepNoMSE":
                         # hiera = self.loss_fn.hiera_model.eval().to(self.device)
                         stage_token_sizes = {0: 4, 1: 8, 2: 16, 3: 32}
 
@@ -257,9 +258,12 @@ class Trainer:
 
                     # for i in self.loss_layer:
                         token_size = stage_token_sizes.get(int(self.loss_layer[0]), 4)
+                        print("before")
                         vis_tensor = show_hr_sr_features(
                             pil_hr, pil_sr, hr_features, sr_features, f"Stage {int(self.loss_layer[0])}", token_size
                         )
+                        print("tensor added")
+                        print(vis_tensor)
                         self.writer.add_image(f"HieraCompare/Stage_{int(self.loss_layer[0])}", vis_tensor, epoch_counter)
 
         avg_loss = total_loss / len(self.val_dataloader)
