@@ -14,6 +14,8 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 def reduce_channels(feat, use_pca=True):
     H, W, C = feat.shape
+    # print("fek konm")
+    # print(feat.shape)
     if use_pca and C > 1:
         flat = feat.reshape(-1, C)
         reduced = PCA(n_components=1).fit_transform(flat).reshape(H, W)
@@ -34,23 +36,37 @@ def fig_to_tensor(fig):
     return torch.tensor(image).permute(2, 0, 1).float()
 
 def show_hr_sr_features(hr_img, sr_img, hr_feat, sr_feat, stage_name, token_size):
+    # print("stage1")
+    # print(len(hr_feat))
     feat_hr = hr_feat[0].detach().cpu().numpy()
     feat_sr = sr_feat[0].detach().cpu().numpy()
-    H, W, C = feat_hr.shape
-    fmap_hr = reduce_channels(feat_hr)
-    fmap_sr = reduce_channels(feat_sr)
+    # print("stager")
+    # print(feat_hr.shape)
+    B, H, W, C = feat_hr.shape
+    # print(feat_hr.shape)
+    # print("stageraaaaaa")
+    fmap_hr = reduce_channels(feat_hr[0])
+    fmap_sr = reduce_channels(feat_sr[0])
+    # print("stage2")
 
     fig, axes = plt.subplots(2, 2, figsize=(10, 10))
-    fig.suptitle(f"{stage_name} — Shape: {hr_feat.shape}", fontsize=10)
+    fig.suptitle(f"{stage_name} — Shape: {hr_feat[0].shape}", fontsize=10)
+    # print("stage3")
 
     for i in range(H):
         for j in range(W):
             x = j * token_size
             y = i * token_size
-            rect = patches.Rectangle((x, y), token_size, token_size,
-                                     linewidth=0.5, edgecolor='lime', facecolor='none')
-            axes[0][0].add_patch(rect)
-            axes[1][0].add_patch(rect)
+            # one rectangle per axes
+            rect_hr = patches.Rectangle((x, y), token_size, token_size,
+                                        linewidth=0.5, edgecolor='lime', facecolor='none')
+            rect_sr = patches.Rectangle((x, y), token_size, token_size,
+                                        linewidth=0.5, edgecolor='lime', facecolor='none')
+
+            axes[0][0].add_patch(rect_hr)
+            axes[1][0].add_patch(rect_sr)
+
+    # print("stage4")
 
     axes[0][0].imshow(hr_img)
     axes[0][0].set_title("HR Image + Grid")
@@ -67,8 +83,11 @@ def show_hr_sr_features(hr_img, sr_img, hr_feat, sr_feat, stage_name, token_size
     axes[1][1].imshow(fmap_sr, cmap='viridis')
     axes[1][1].set_title("SR Feature Map")
     axes[1][1].axis('off')
+    # print("stage5")
 
     plt.tight_layout()
+    # print("stage6")
+
     return fig_to_tensor(fig)
 
 
@@ -209,7 +228,9 @@ class Trainer:
                 # print("OUTSIDE")
 
                 # and epoch_counter % 5 == 0
-                if self.writer is not None and epoch_counter % 5 == 0 and batch_idx == 0:                   
+                if self.writer is not None and epoch_counter % 5 == 0 and batch_idx == 0:  
+                # if self.writer is not None and  batch_idx == 0:                   
+                 
                     if self.loss_fn_name == "HieraNoFreqPercepNoMSE":
                         sr_features = self.loss_fn.compute_features(sr_imgs)
                         hr_features = self.loss_fn.compute_features(hr_imgs)
