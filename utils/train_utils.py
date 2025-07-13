@@ -9,8 +9,17 @@ import matplotlib.patches as patches
 from sklearn.decomposition import PCA
 from io import BytesIO
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import numpy as np
 
+# --- Helper functions ---
 
+def tensor_to_image_array(tensor: torch.Tensor) -> np.ndarray:
+    """
+    Convert a [C,H,W] torch tensor (values ~[0,1]) to a numpy RGB image array [H,W,3] in [0,1].
+    """
+    img = tensor.detach().cpu().clamp(0, 1)
+    img = img.permute(1, 2, 0).numpy()
+    return img
 
 def reduce_channels(feat, use_pca=True):
     H, W, C = feat.shape
@@ -53,20 +62,20 @@ def show_hr_sr_features(hr_img, sr_img, hr_feat, sr_feat, stage_name, token_size
     fig.suptitle(f"{stage_name} — Shape: {hr_feat[0].shape}", fontsize=10)
     # print("stage3")
 
-    for i in range(H):
-        for j in range(W):
-            x = j * token_size
-            y = i * token_size
-            # one rectangle per axes
-            rect_hr = patches.Rectangle((x, y), token_size, token_size,
-                                        linewidth=0.5, edgecolor='lime', facecolor='none')
-            rect_sr = patches.Rectangle((x, y), token_size, token_size,
-                                        linewidth=0.5, edgecolor='lime', facecolor='none')
+    # for i in range(H):
+    #     for j in range(W):
+    #         x = j * token_size
+    #         y = i * token_size
+    #         # one rectangle per axes
+    #         rect_hr = patches.Rectangle((x, y), token_size, token_size,
+    #                                     linewidth=0.5, edgecolor='lime', facecolor='none')
+    #         rect_sr = patches.Rectangle((x, y), token_size, token_size,
+    #                                     linewidth=0.5, edgecolor='lime', facecolor='none')
 
-            axes[0][0].add_patch(rect_hr)
-            axes[1][0].add_patch(rect_sr)
+    #         axes[0][0].add_patch(rect_hr)
+    #         axes[1][0].add_patch(rect_sr)
 
-    # print("stage4")
+
 
     axes[0][0].imshow(hr_img)
     axes[0][0].set_title("HR Image + Grid")
@@ -268,23 +277,30 @@ class Trainer:
                     if self.loss_fn_name == "HieraNoFreqPercepNoMSE":
                         # hiera = self.loss_fn.hiera_model.eval().to(self.device)
                         stage_token_sizes = {0: 4, 1: 8, 2: 16, 3: 32}
-
-                        hr_img = hr_imgs[0].unsqueeze(0)
-                        sr_img = sr_imgs[0].unsqueeze(0)
-                        pil_hr = T.ToPILImage()(hr_img.squeeze().cpu()).resize((224, 224))
-                        pil_sr = T.ToPILImage()(sr_img.squeeze().cpu()).resize((224, 224))
-
+              
+                        hr_img = hr_imgs[0]
+                        sr_img = sr_imgs[0]
+                        
+                        # pil_hr = T.ToPILImage()(hr_img.cpu()).resize((224, 224))
+                        # pil_sr = T.ToPILImage()(sr_img.cpu()).resize((224, 224))
+                        hr_np = tensor_to_image_array(hr_img)
+                        sr_np = tensor_to_image_array(sr_img)                     
+                     
+                        # hr_np = tensor_to_image_array(hr_resized)
+                        # sr_np = tensor_to_image_array(sr_resized)
+                       
+                     
                         # hr_feats = self.loss_fn.extract_features(hr_img)
                         # sr_feats = self.loss_fn.extract_features(sr_img)
 
                     # for i in self.loss_layer:
                         token_size = stage_token_sizes.get(int(self.loss_layer[0]), 4)
-                        print("before")
+                        # print("before")
                         vis_tensor = show_hr_sr_features(
-                            pil_hr, pil_sr, hr_features, sr_features, f"Stage {int(self.loss_layer[0])}", token_size
+                            hr_np, sr_np, hr_features, sr_features, f"Stage {int(self.loss_layer[0])}", token_size
                         )
-                        print("tensor added")
-                        print(vis_tensor)
+                        # print("tensor added")
+                        # print(vis_tensor)
                         self.writer.add_image(f"HieraCompare/Stage_{int(self.loss_layer[0])}", vis_tensor, epoch_counter)
 
         avg_loss = total_loss / len(self.val_dataloader)

@@ -136,8 +136,8 @@ class SuperResolutionEvaluator:
         # Prepare the test dataset and DataLoader
         transform = transforms.Compose([transforms.ToTensor()])
         self.test_dataset = SRDataset(
-            hr_dir="data/DIV2K/test/HR", 
-            lr_dir="data/DIV2K/test/LR_bicubic_X4", 
+            hr_dir="data/Combined/test/HR", 
+            lr_dir="data/Combined/test/LR_bicubic_X4", 
             transform=transform, 
             hr_size=(256, 256), 
             lr_size=(64, 64)
